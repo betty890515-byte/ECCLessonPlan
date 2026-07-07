@@ -51,9 +51,17 @@
   .divider{border-top:1px solid #EEE;margin:20px 0}
 
   /* Today view */
-  .today-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px}
+  .today-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:16px}
   .today-date-label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
   .today-date{font-size:26px;font-weight:600}
+  .day-picker{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
+  .day-btn{padding:7px 14px;border:1px solid #E0E0E0;border-radius:8px;background:#fff;font-size:12px;cursor:pointer;color:#555;transition:all .15s;text-align:center;min-width:64px;line-height:1.4}
+  .day-btn:hover{border-color:#999;color:#111}
+  .day-btn.active{background:#111;color:#fff;border-color:#111}
+  .day-btn.is-today{border-color:#1A6FA8;color:#1A6FA8}
+  .day-btn.is-today.active{background:#1A6FA8;border-color:#1A6FA8;color:#fff}
+  .day-btn .dn{font-weight:700;display:block}
+  .day-btn .dd{opacity:.7;display:block}
   .lesson-content{background:#F7F8FA;border-radius:8px;padding:12px 14px;margin-top:10px}
   .lesson-content-label{font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
   .lesson-text{font-size:15px;line-height:1.65;white-space:pre-wrap}
@@ -225,20 +233,54 @@ function renderToday() {
   renderTodayContent();
 }
 
+let selectedDate = todayISO();
+
+function getWeekDates() {
+  const today = new Date();
+  const day = today.getDay();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1));
+  const dates = [];
+  for (let i = 0; i < 5; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const iso = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    dates.push({ iso, dayName: DAYS[d.getDay()], dayNum: (d.getMonth()+1) + '/' + d.getDate() });
+  }
+  return dates;
+}
+
 function renderTodayContent() {
   const today = todayISO();
-  const list = courseList().filter(c => c.date === today).sort((a,b) => a.time.localeCompare(b.time));
+  const weekDates = getWeekDates();
+  if (!weekDates.find(d => d.iso === selectedDate)) selectedDate = today;
+
+  // Day picker
+  let pickerHtml = '<div class="day-picker">';
+  weekDates.forEach(d => {
+    const isToday = d.iso === today;
+    const isActive = d.iso === selectedDate;
+    const cls = ['day-btn', isToday ? 'is-today' : '', isActive ? 'active' : ''].filter(Boolean).join(' ');
+    pickerHtml += `<button class="${cls}" onclick="selectDay('${d.iso}')"><span class="dn">${d.dayName}</span><span class="dd">${d.dayNum}</span></button>`;
+  });
+  pickerHtml += '</div>';
+
+  const list = courseList().filter(c => c.date === selectedDate).sort((a,b) => a.time.localeCompare(b.time));
+  const isToday = selectedDate === today;
+  const label = isToday ? 'Today' : fmtDate(selectedDate);
+
   let html = `
     <div class="today-header">
       <div>
-        <div class="today-date-label">Today</div>
-        <div class="today-date">${fmtDate(today)}</div>
+        <div class="today-date-label">${isToday ? 'Today' : 'Schedule'}</div>
+        <div class="today-date">${label}</div>
       </div>
       <span class="badge badge-blue">${list.length} 堂課</span>
-    </div>`;
+    </div>
+    ${pickerHtml}`;
 
   if (!list.length) {
-    html += `<div class="empty-state"><div class="icon">📅</div><p>今天沒有排定的外師課程</p></div>`;
+    html += `<div class="empty-state"><div class="icon">📅</div><p>這天沒有排定的外師課程</p></div>`;
   } else {
     list.forEach(c => {
       html += `<div class="card">
@@ -276,6 +318,11 @@ function renderTodayContent() {
   }
   document.getElementById('tab-today').innerHTML = html;
 }
+
+window.selectDay = function(iso) {
+  selectedDate = iso;
+  renderTodayContent();
+};
 
 
 
