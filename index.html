@@ -350,37 +350,24 @@ async function uploadImage(file) {
   throw new Error('Upload failed');
 }
 
-window.triggerImageUpload = function(id) {
-  let input = document.getElementById('hidden-file-input');
-  if (!input) {
-    input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.id = 'hidden-file-input';
-    input.style.display = 'none';
-    document.body.appendChild(input);
+window.handleImageUpload = async function(event, id) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const status = document.getElementById('img-status-' + id);
+  const preview = document.getElementById('img-preview-' + id);
+  if (status) { status.textContent = '上傳中...'; status.style.color = '#888'; }
+  try {
+    const url = await uploadImage(file);
+    const course = courses[id];
+    if (!course) return;
+    course.imageUrl = url;
+    course.updatedAt = new Date().toISOString();
+    await saveCourse(id, course);
+    if (preview) { preview.src = url; preview.style.display = 'block'; }
+    if (status) { status.textContent = '✓ 圖片上傳成功'; status.style.color = '#1E7E34'; setTimeout(() => { if(status) status.textContent = ''; }, 3000); }
+  } catch(e) {
+    if (status) { status.textContent = '上傳失敗，請重試'; status.style.color = '#C62828'; }
   }
-  input.value = '';
-  input.onchange = async () => {
-    const file = input.files[0];
-    if (!file) return;
-    const status = document.getElementById('img-status-' + id);
-    const preview = document.getElementById('img-preview-' + id);
-    if (status) { status.textContent = '上傳中...'; status.style.color = '#888'; }
-    try {
-      const url = await uploadImage(file);
-      const course = courses[id];
-      if (!course) return;
-      course.imageUrl = url;
-      course.updatedAt = new Date().toISOString();
-      await saveCourse(id, course);
-      if (preview) { preview.src = url; preview.style.display = 'block'; }
-      if (status) { status.textContent = '✓ 圖片上傳成功'; status.style.color = '#1E7E34'; setTimeout(() => { if(status) status.textContent = ''; }, 3000); }
-    } catch(e) {
-      if (status) { status.textContent = '上傳失敗，請重試'; status.style.color = '#C62828'; }
-    }
-  };
-  input.click();
 };
 
 function renderTeacher() {
@@ -432,14 +419,13 @@ window.renderTeacherCourses = function() {
         </div>
       </div>
       <div style="margin-top:4px">
-        <label>教材截圖</label>
-        <div>
-          <button class="img-upload-btn" onclick="triggerImageUpload('${c.id}')">
-            <i class="ti ti-photo-up" style="font-size:15px"></i> 上傳截圖
-          </button>
-          <div id="img-status-${c.id}" class="img-uploading"></div>
-          ${c.imageUrl ? `<img id="img-preview-${c.id}" src="${esc(c.imageUrl)}" class="img-preview">` : `<img id="img-preview-${c.id}" class="img-preview" style="display:none">`}
-        </div>
+        <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px">教材截圖</label>
+        <label class="img-upload-btn" style="display:inline-flex;cursor:pointer">
+          <input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(event,'${c.id}')">
+          <i class="ti ti-photo-up" style="font-size:15px"></i>&nbsp;上傳截圖
+        </label>
+        <div id="img-status-${c.id}" class="img-uploading"></div>
+        ${c.imageUrl ? `<img id="img-preview-${c.id}" src="${esc(c.imageUrl)}" class="img-preview">` : `<img id="img-preview-${c.id}" class="img-preview" style="display:none">`}
       </div>
     </div>`;
   });
