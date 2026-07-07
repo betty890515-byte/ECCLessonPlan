@@ -351,9 +351,16 @@ async function uploadImage(file) {
 }
 
 window.triggerImageUpload = function(id) {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*';
+  let input = document.getElementById('hidden-file-input');
+  if (!input) {
+    input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.id = 'hidden-file-input';
+    input.style.display = 'none';
+    document.body.appendChild(input);
+  }
+  input.value = '';
   input.onchange = async () => {
     const file = input.files[0];
     if (!file) return;
@@ -368,7 +375,7 @@ window.triggerImageUpload = function(id) {
       course.updatedAt = new Date().toISOString();
       await saveCourse(id, course);
       if (preview) { preview.src = url; preview.style.display = 'block'; }
-      if (status) { status.textContent = '✓ 圖片上傳成功'; status.style.color = '#1E7E34'; }
+      if (status) { status.textContent = '✓ 圖片上傳成功'; status.style.color = '#1E7E34'; setTimeout(() => { if(status) status.textContent = ''; }, 3000); }
     } catch(e) {
       if (status) { status.textContent = '上傳失敗，請重試'; status.style.color = '#C62828'; }
     }
