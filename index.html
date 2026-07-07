@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ECC 外師教案系統 — 耶加語言學校</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F7F8FA;color:#1A1A1A;font-size:15px}
+  a{color:#1A6FA8;text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  /* Layout */
+  .app{max-width:760px;margin:0 auto;padding:0 16px 48px}
+  .header{padding:20px 0 0;border-bottom:1px solid #E0E0E0;margin-bottom:0}
+  .header-top{display:flex;align-items:baseline;gap:10px;margin-bottom:16px}
+  .school-label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.08em}
+  .app-title{font-size:20px;font-weight:600;color:#111}
+  .tabbar{display:flex;gap:0}
+  .tab{padding:10px 18px;font-size:13px;font-weight:500;background:transparent;border:none;border-bottom:2px solid transparent;color:#888;cursor:pointer;display:flex;align-items:center;gap:6px;transition:color .15s}
+  .tab:hover{color:#444}
+  .tab.active{color:#111;border-bottom-color:#111}
+  .tab i{font-size:14px}
+  .body{padding-top:24px}
+
+  /* Cards */
+  .card{background:#fff;border:1px solid #E8E8E8;border-radius:12px;padding:16px 20px;margin-bottom:12px}
+  .card-sm{padding:12px 16px}
+
+  /* Badges */
+  .badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px}
+  .badge-blue{background:#E8F0FE;color:#1A6FA8}
+  .badge-green{background:#E6F4EA;color:#1E7E34}
+  .badge-orange{background:#FEF3E2;color:#C67C00}
+  .badge-gray{background:#F1F3F4;color:#555}
+
+  /* Form elements */
+  label{font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;margin-top:12px}
+  input,select,textarea{width:100%;padding:8px 10px;border:1px solid #DDD;border-radius:8px;font-size:14px;font-family:inherit;background:#fff;color:#111;outline:none;transition:border .15s}
+  input:focus,select:focus,textarea:focus{border-color:#1A6FA8}
+  textarea{resize:vertical}
+  button{padding:8px 16px;border:1px solid #DDD;border-radius:8px;background:#fff;font-size:13px;font-weight:500;cursor:pointer;color:#111;transition:background .15s}
+  button:hover{background:#F5F5F5}
+  button.primary{background:#111;color:#fff;border-color:#111}
+  button.primary:hover{background:#333}
+  button.danger{background:#fff;color:#C62828;border-color:#FFCDD2}
+  button.danger:hover{background:#FFEBEE}
+  button:disabled{opacity:.4;cursor:not-allowed}
+
+  /* Divider */
+  .divider{border-top:1px solid #EEE;margin:20px 0}
+
+  /* Today view */
+  .today-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px}
+  .today-date-label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+  .today-date{font-size:26px;font-weight:600}
+  .lesson-content{background:#F7F8FA;border-radius:8px;padding:12px 14px;margin-top:10px}
+  .lesson-content-label{font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+  .lesson-text{font-size:15px;line-height:1.65;white-space:pre-wrap}
+  .material-link{display:inline-flex;align-items:center;gap:4px;margin-top:8px;font-size:13px;color:#1A6FA8}
+  .warn-box{background:#FFF8E1;border-radius:8px;padding:10px 14px;margin-top:10px;font-size:13px;color:#B45309}
+  .course-header{display:flex;justify-content:space-between;align-items:flex-start}
+  .course-name{font-size:20px;font-weight:600;margin-bottom:4px}
+  .course-meta{font-size:13px;color:#777}
+  .ct-label{font-size:11px;color:#888;margin-bottom:2px}
+  .ct-name{font-size:14px;font-weight:600;text-align:right}
+  .empty-state{text-align:center;padding:48px 16px;color:#999}
+  .empty-state .icon{font-size:40px;margin-bottom:12px}
+  .empty-state p{font-size:14px}
+
+  /* Password gate */
+  .pw-gate{max-width:320px;margin:48px auto;text-align:center}
+  .pw-gate .lock-icon{font-size:36px;color:#BBB;margin-bottom:12px}
+  .pw-gate p{font-size:14px;color:#777;margin-bottom:16px}
+  .pw-error{font-size:12px;color:#C62828;margin-top:6px}
+
+  /* Teacher view */
+  .save-indicator{font-size:11px;color:#1E7E34;margin-left:8px}
+
+  /* Admin */
+  .course-row{display:flex;align-items:center;gap:10px}
+  .course-row-info{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .course-row-name{font-weight:600;font-size:14px}
+  .course-row-meta{font-size:12px;color:#777}
+  .mono{font-family:'SF Mono',Menlo,monospace;font-size:12px;background:#F7F8FA;padding:10px 14px;border-radius:8px;color:#555;line-height:1.8;margin-bottom:10px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .row{display:flex;gap:8px;align-items:center}
+  section h3{font-size:15px;font-weight:600;margin-bottom:4px}
+  section p.sub{font-size:13px;color:#777;margin-bottom:10px}
+
+  /* Loading */
+  #loading{text-align:center;padding:48px;color:#999;font-size:14px}
+</style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <div class="header-top">
+      <span class="school-label">耶加語言學校</span>
+      <span class="app-title">ECC 外師教案系統</span>
+    </div>
+    <div class="tabbar">
+      <button class="tab active" onclick="switchTab('today',this)">
+        <i class="ti ti-calendar"></i>今日課表
+      </button>
+      <button class="tab" onclick="switchTab('teacher',this)">
+        <i class="ti ti-edit"></i>老師填寫
+      </button>
+      <button class="tab" onclick="switchTab('admin',this)">
+        <i class="ti ti-settings"></i>行政管理
+      </button>
+    </div>
+  </div>
+
+  <div class="body">
+    <div id="loading">載入中...</div>
+    <div id="tab-today" style="display:none"></div>
+    <div id="tab-teacher" style="display:none"></div>
+    <div id="tab-admin" style="display:none"></div>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ── Firebase config ──────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyBc14tI-IAmSGRUkBIvuO9Cze8mQFare7M",
+  authDomain: "aplusecc.firebaseapp.com",
+  databaseURL: "https://aplusecc-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "aplusecc",
+  storageBucket: "aplusecc.firebasestorage.app",
+  messagingSenderId: "1098832467671",
+  appId: "1:1098832467671:web:958f9db44977b6e4904292",
+  measurementId: "G-HBGHH7K7MF"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+let courses = {};
+let settings = { vpw: 'ECC2025', apw: 'admin2025' };
+let viewAuth = false, adminAuth = false;
+
+function todayISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function toISO(raw) {
+  const s = (raw||'').trim();
+  if (!s) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const p = s.split('/');
+  if (p.length >= 2) {
+    const y = p.length === 3 ? p[2] : new Date().getFullYear();
+    return `${y}-${String(p[0]).padStart(2,'0')}-${String(p[1]).padStart(2,'0')}`;
+  }
+  return s;
+}
+function fmtDate(iso) {
+  if (!iso) return '─';
+  const dt = new Date(iso + 'T12:00:00');
+  return `${dt.getMonth()+1}/${dt.getDate()} (${DAYS[dt.getDay()]})`;
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function courseList() {
+  return Object.values(courses || {});
+}
+
+// ── Firebase read/write ───────────────────────────────────────────────────────
+async function saveCourse(id, data) {
+  await set(ref(db, `courses/${id}`), data);
+}
+async function deleteCourse(id) {
+  await set(ref(db, `courses/${id}`), null);
+  delete courses[id];
+}
+async function saveSettings(data) {
+  await set(ref(db, 'settings'), data);
+  settings = data;
+}
+
+// Listen for real-time updates
+onValue(ref(db, 'courses'), snap => {
+  courses = snap.val() || {};
+  rerenderActive();
+});
+onValue(ref(db, 'settings'), snap => {
+  if (snap.val()) settings = snap.val();
+});
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+let activeTab = 'today';
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  ['today','teacher','admin'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === name ? 'block' : 'none';
+  });
+  activeTab = name;
+  if (name === 'today') renderToday();
+  if (name === 'teacher') renderTeacher();
+  if (name === 'admin') renderAdmin();
+}
+function rerenderActive() {
+  if (activeTab === 'today' && viewAuth) renderTodayContent();
+  if (activeTab === 'teacher') {
+    const sel = document.getElementById('teacher-select');
+    if (sel && sel.value) renderTeacherCourses();
+  }
+  if (activeTab === 'admin' && adminAuth) renderAdminContent();
+}
+window.switchTab = switchTab;
+
+// ── TODAY VIEW ────────────────────────────────────────────────────────────────
+function renderToday() {
+  if (!viewAuth) {
+    document.getElementById('tab-today').innerHTML = `
+      <div class="pw-gate">
+        <div class="lock-icon">🔒</div>
+        <p>外師課表 — 請輸入查看密碼</p>
+        <input type="password" id="vpw-in" placeholder="Password" onkeydown="if(event.key==='Enter')tryViewLogin()">
+        <div id="vpw-err" class="pw-error" style="display:none">密碼錯誤，請再試</div>
+        <button class="primary" onclick="tryViewLogin()" style="width:100%;margin-top:10px">確認</button>
+      </div>`;
+    return;
+  }
+  renderTodayContent();
+}
+
+function renderTodayContent() {
+  const today = todayISO();
+  const list = courseList().filter(c => c.date === today).sort((a,b) => a.time.localeCompare(b.time));
+  let html = `
+    <div class="today-header">
+      <div>
+        <div class="today-date-label">Today</div>
+        <div class="today-date">${fmtDate(today)}</div>
+      </div>
+      <span class="badge badge-blue">${list.length} 堂課</span>
+    </div>`;
+
+  if (!list.length) {
+    html += `<div class="empty-state"><div class="icon">📅</div><p>今天沒有排定的外師課程</p></div>`;
+  } else {
+    list.forEach(c => {
+      html += `<div class="card">
+        <div class="course-header">
+          <div>
+            <div class="course-name">${esc(c.className)}</div>
+            <div class="course-meta">
+              <i class="ti ti-clock" style="font-size:12px;vertical-align:-1px;margin-right:3px"></i>${esc(c.time)}
+              &nbsp;&nbsp;
+              <i class="ti ti-door" style="font-size:12px;vertical-align:-1px;margin-right:3px"></i>${esc(c.classroom)}
+            </div>
+          </div>
+          <div>
+            <div class="ct-label">C.T.</div>
+            <div class="ct-name">${esc(c.teacher||'─')}</div>
+          </div>
+        </div>`;
+      if (c.lesson) {
+        html += `<div class="lesson-content">
+          <div class="lesson-content-label">Today's Lesson</div>
+          <div class="lesson-text">${esc(c.lesson)}</div>
+          ${c.materialLink ? `<a href="${esc(c.materialLink)}" target="_blank" class="material-link">
+            <i class="ti ti-external-link" style="font-size:14px"></i>
+            教材連結${c.materialPage ? ' — p.' + esc(c.materialPage) : ''}
+          </a>` : ''}
+        </div>`;
+      } else {
+        html += `<div class="warn-box">
+          <i class="ti ti-alert-triangle" style="font-size:13px;margin-right:5px;vertical-align:-2px"></i>
+          Lesson not yet filled in — please check with your C.T.
+        </div>`;
+      }
+      html += `</div>`;
+    });
+  }
+  document.getElementById('tab-today').innerHTML = html;
+}
+
+window.tryViewLogin = function() {
+  const v = document.getElementById('vpw-in').value;
+  if (v === settings.vpw) { viewAuth = true; renderTodayContent(); }
+  else document.getElementById('vpw-err').style.display = 'block';
+};
+
+// ── TEACHER VIEW ──────────────────────────────────────────────────────────────
+function renderTeacher() {
+  const teachers = [...new Set(courseList().map(c => c.teacher).filter(Boolean))].sort();
+  const opts = teachers.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+  document.getElementById('tab-teacher').innerHTML = `
+    <div style="margin-bottom:20px">
+      <label style="margin-top:0">老師姓名</label>
+      <select id="teacher-select" onchange="renderTeacherCourses()" style="max-width:280px">
+        <option value="">── 請選擇 ──</option>${opts}
+      </select>
+      <p style="font-size:13px;color:#888;margin-top:8px">選擇後可看到你負責的所有外師課，填入今日課程內容後自動儲存。</p>
+    </div>
+    <div id="teacher-courses"></div>`;
+}
+
+window.renderTeacherCourses = function() {
+  const teacher = document.getElementById('teacher-select').value;
+  const el = document.getElementById('teacher-courses');
+  if (!teacher) { el.innerHTML = ''; return; }
+  const today = todayISO();
+  const mine = courseList()
+    .filter(c => c.teacher === teacher && c.date >= today)
+    .sort((a,b) => a.date === b.date ? a.time.localeCompare(b.time) : a.date.localeCompare(b.date));
+  if (!mine.length) { el.innerHTML = `<p style="color:#999;font-size:14px">查無近期課程。</p>`; return; }
+  let html = '';
+  mine.forEach(c => {
+    html += `<div class="card" id="tc-${c.id}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <span style="font-weight:600;font-size:16px">${esc(c.className)}</span>
+          <span style="margin-left:8px;font-size:13px;color:#777">${fmtDate(c.date)} · ${esc(c.time)} · ${esc(c.classroom)}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="si-${c.id}" class="save-indicator" style="display:none">✓ 已儲存</span>
+          <span class="badge ${c.lesson ? 'badge-green' : 'badge-orange'}" id="tb-${c.id}">${c.lesson ? '完成' : '待填'}</span>
+        </div>
+      </div>
+      <label>Today's Lesson</label>
+      <textarea id="tl-${c.id}" rows="2" placeholder="e.g. Grammar U16 — Ex. A, B, C" onblur="saveField('${c.id}','lesson',this.value)">${esc(c.lesson||'')}</textarea>
+      <div class="grid2">
+        <div>
+          <label>教材連結 (Google Drive)</label>
+          <input type="text" id="tm-${c.id}" value="${esc(c.materialLink||'')}" placeholder="https://drive.google.com/..." onblur="saveField('${c.id}','materialLink',this.value)">
+        </div>
+        <div>
+          <label>頁數</label>
+          <input type="text" id="tp-${c.id}" value="${esc(c.materialPage||'')}" placeholder="41–42" onblur="saveField('${c.id}','materialPage',this.value)">
+        </div>
+      </div>
+    </div>`;
+  });
+  el.innerHTML = html;
+};
+
+window.saveField = async function(id, field, val) {
+  const course = courses[id];
+  if (!course) return;
+  course[field] = val;
+  course.updatedAt = new Date().toISOString();
+  await saveCourse(id, course);
+  const si = document.getElementById('si-' + id);
+  const tb = document.getElementById('tb-' + id);
+  if (si) { si.style.display = 'inline'; setTimeout(() => si.style.display = 'none', 2000); }
+  if (tb) {
+    const lesson = field === 'lesson' ? val : course.lesson;
+    tb.className = `badge ${lesson ? 'badge-green' : 'badge-orange'}`;
+    tb.textContent = lesson ? '完成' : '待填';
+  }
+};
+
+// ── ADMIN VIEW ────────────────────────────────────────────────────────────────
+function renderAdmin() {
+  if (!adminAuth) {
+    document.getElementById('tab-admin').innerHTML = `
+      <div class="pw-gate">
+        <div class="lock-icon">🔒</div>
+        <p>行政管理 — 請輸入管理員密碼</p>
+        <input type="password" id="apw-in" placeholder="Password" onkeydown="if(event.key==='Enter')tryAdminLogin()">
+        <div id="apw-err" class="pw-error" style="display:none">密碼錯誤，請再試</div>
+        <button class="primary" onclick="tryAdminLogin()" style="width:100%;margin-top:10px">確認</button>
+      </div>`;
+    return;
+  }
+  renderAdminContent();
+}
+
+window.tryAdminLogin = function() {
+  const v = document.getElementById('apw-in').value;
+  if (v === settings.apw) { adminAuth = true; renderAdminContent(); }
+  else document.getElementById('apw-err').style.display = 'block';
+};
+
+function renderAdminContent() {
+  document.getElementById('tab-admin').innerHTML = `
+    <section>
+      <h3>批量匯入課表</h3>
+      <p class="sub">從 Excel 複製貼上，每行一堂課（Tab 分隔）：日期 → 班級 → 時間 → 教室 → 英語老師</p>
+      <div class="mono">範例：<br>7/13&nbsp;&nbsp;&nbsp;&nbsp;OLG+OLH&nbsp;&nbsp;&nbsp;&nbsp;9:30~10:20(50m)&nbsp;&nbsp;&nbsp;&nbsp;2A(ZX)&nbsp;&nbsp;&nbsp;&nbsp;Cynthia<br>7/15&nbsp;&nbsp;&nbsp;&nbsp;PPC&nbsp;&nbsp;&nbsp;&nbsp;9:30~10:20(50m)&nbsp;&nbsp;&nbsp;&nbsp;F-B&nbsp;&nbsp;&nbsp;&nbsp;Sherry</div>
+      <textarea id="paste-area" rows="6" placeholder="從 Excel 貼上課表..." style="margin-bottom:8px;font-size:13px"></textarea>
+      <button class="primary" onclick="doImport()">
+        <i class="ti ti-upload" style="font-size:14px;margin-right:4px"></i>匯入
+      </button>
+      <p id="import-msg" style="font-size:13px;color:#1E7E34;margin-top:8px"></p>
+    </section>
+
+    <div class="divider"></div>
+
+    <section>
+      <h3>手動新增單堂課</h3>
+      <div class="grid2" style="margin-bottom:8px">
+        <input type="text" id="a-date" placeholder="日期（7/13）">
+        <input type="text" id="a-class" placeholder="班級">
+        <input type="text" id="a-time" placeholder="時間">
+        <input type="text" id="a-room" placeholder="教室">
+        <input type="text" id="a-teacher" placeholder="英語老師">
+      </div>
+      <button onclick="addSingle()">新增</button>
+    </section>
+
+    <div class="divider"></div>
+
+    <section>
+      <div class="row" style="justify-content:space-between;margin-bottom:12px">
+        <h3 style="margin:0">所有課程 <span id="course-count" style="color:#888;font-weight:400">(${courseList().length})</span></h3>
+        <input type="text" id="search" placeholder="搜尋..." style="width:180px" oninput="renderCourseList()">
+      </div>
+      <div id="course-list"></div>
+    </section>
+
+    <div class="divider"></div>
+
+    <section>
+      <h3>密碼設定</h3>
+      <div class="grid2" style="margin-top:8px">
+        <div>
+          <label>外師查看密碼</label>
+          <div class="row">
+            <input type="text" id="new-vpw" placeholder="${esc(settings.vpw)}">
+            <button onclick="updatePw('vpw')">更新</button>
+          </div>
+        </div>
+        <div>
+          <label>管理員密碼</label>
+          <div class="row">
+            <input type="text" id="new-apw" placeholder="${esc(settings.apw)}">
+            <button onclick="updatePw('apw')">更新</button>
+          </div>
+        </div>
+      </div>
+    </section>`;
+  renderCourseList();
+}
+
+window.renderCourseList = function() {
+  const filter = (document.getElementById('search')?.value || '').toLowerCase();
+  const list = courseList()
+    .filter(c => !filter || [c.date, c.className, c.teacher, c.classroom].some(v => (v||'').toLowerCase().includes(filter)))
+    .sort((a,b) => a.date === b.date ? a.time.localeCompare(b.time) : a.date.localeCompare(b.date));
+  const el = document.getElementById('course-list');
+  const cnt = document.getElementById('course-count');
+  if (cnt) cnt.textContent = `(${courseList().length})`;
+  if (!el) return;
+  if (!list.length) { el.innerHTML = `<p style="color:#999;font-size:14px;text-align:center;padding:16px">找不到課程</p>`; return; }
+  el.innerHTML = list.map(c => `
+    <div class="card card-sm course-row">
+      <div class="course-row-info">
+        <span class="course-row-name">${esc(c.className)}</span>
+        <span class="course-row-meta" style="margin-left:8px">${fmtDate(c.date)} · ${esc(c.time)} · ${esc(c.classroom)}${c.teacher ? ' · ' + esc(c.teacher) : ''}</span>
+      </div>
+      <span class="badge ${c.lesson ? 'badge-green' : 'badge-orange'}">${c.lesson ? '已填' : '未填'}</span>
+      <button class="danger" onclick="doDelete('${c.id}')" aria-label="刪除" style="padding:4px 8px">
+        <i class="ti ti-trash" style="font-size:14px"></i>
+      </button>
+    </div>`).join('');
+};
+
+window.doImport = async function() {
+  const lines = document.getElementById('paste-area').value.trim().split('\n').filter(Boolean);
+  let added = 0, skipped = 0;
+  for (const line of lines) {
+    const parts = line.split('\t').map(s => s.trim());
+    const [rawDate, className, time, classroom, teacher = ''] = [...parts, ...Array(5).fill('')];
+    const date = toISO(rawDate);
+    if (!date || !className) { skipped++; continue; }
+    if (courseList().find(c => c.date === date && c.className === className)) { skipped++; continue; }
+    const id = uid();
+    const course = { id, date, className, time: time||'', classroom: classroom||'', teacher, lesson: '', materialLink: '', materialPage: '', createdAt: new Date().toISOString() };
+    await saveCourse(id, course);
+    added++;
+  }
+  document.getElementById('import-msg').textContent = `✓ ${added} 堂課匯入成功，${skipped} 筆略過（重複或格式錯誤）`;
+  document.getElementById('paste-area').value = '';
+};
+
+window.addSingle = async function() {
+  const date = toISO(document.getElementById('a-date').value);
+  const className = document.getElementById('a-class').value.trim();
+  if (!date || !className) return;
+  if (courseList().find(c => c.date === date && c.className === className)) return;
+  const id = uid();
+  await saveCourse(id, {
+    id, date, className,
+    time: document.getElementById('a-time').value.trim(),
+    classroom: document.getElementById('a-room').value.trim(),
+    teacher: document.getElementById('a-teacher').value.trim(),
+    lesson: '', materialLink: '', materialPage: '',
+    createdAt: new Date().toISOString()
+  });
+  ['a-date','a-class','a-time','a-room','a-teacher'].forEach(id => { document.getElementById(id).value = ''; });
+};
+
+window.doDelete = async function(id) {
+  if (!confirm('確定刪除這堂課？')) return;
+  await deleteCourse(id);
+  renderCourseList();
+};
+
+window.updatePw = async function(key) {
+  const val = document.getElementById('new-' + key).value.trim();
+  if (!val) return;
+  const newSettings = { ...settings, [key]: val };
+  await saveSettings(newSettings);
+  document.getElementById('new-' + key).value = '';
+  alert(`密碼已更新`);
+};
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+setTimeout(() => {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('tab-today').style.display = 'block';
+  renderToday();
+}, 800);
+</script>
+</body>
+</html>
