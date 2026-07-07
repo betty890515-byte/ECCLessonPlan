@@ -145,7 +145,7 @@ const db = getDatabase(app);
 const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 let courses = {};
 let settings = { vpw: 'ECC2025', apw: 'admin2025' };
-let viewAuth = false, adminAuth = false;
+let viewAuth = true, adminAuth = false;
 
 function todayISO() {
   const d = new Date();
@@ -222,17 +222,6 @@ window.switchTab = switchTab;
 
 // ── TODAY VIEW ────────────────────────────────────────────────────────────────
 function renderToday() {
-  if (!viewAuth) {
-    document.getElementById('tab-today').innerHTML = `
-      <div class="pw-gate">
-        <div class="lock-icon">🔒</div>
-        <p>外師課表 — 請輸入查看密碼</p>
-        <input type="password" id="vpw-in" placeholder="Password" onkeydown="if(event.key==='Enter')tryViewLogin()">
-        <div id="vpw-err" class="pw-error" style="display:none">密碼錯誤，請再試</div>
-        <button class="primary" onclick="tryViewLogin()" style="width:100%;margin-top:10px">確認</button>
-      </div>`;
-    return;
-  }
   renderTodayContent();
 }
 
@@ -288,11 +277,7 @@ function renderTodayContent() {
   document.getElementById('tab-today').innerHTML = html;
 }
 
-window.tryViewLogin = function() {
-  const v = document.getElementById('vpw-in').value;
-  if (v === settings.vpw) { viewAuth = true; renderTodayContent(); }
-  else document.getElementById('vpw-err').style.display = 'block';
-};
+
 
 // ── TEACHER VIEW ──────────────────────────────────────────────────────────────
 function renderTeacher() {
