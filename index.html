@@ -157,8 +157,10 @@ const db = getDatabase(app);
 const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const IMGBB_KEY = 'bf4527c3aa6bd9f9d777c72d26268251';
 let courses = {};
-let settings = { vpw: 'ECC2025', apw: 'admin2025' };
+let settings = { vpw: 'ECC2026', apw: 'Abigail' };
 let viewAuth = true, adminAuth = false;
+let selectedDate = todayISO();
+let activeTab = 'today';
 
 function todayISO() {
   const d = new Date();
@@ -211,12 +213,12 @@ onValue(ref(db, 'settings'), snap => {
 });
 
 // ── Tab switching ─────────────────────────────────────────────────────────────
-let activeTab = 'today';
 function switchTab(name, btn) {
   document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+  if (btn) btn.classList.add('active');
   ['today','teacher','admin'].forEach(t => {
-    document.getElementById('tab-' + t).style.display = t === name ? 'block' : 'none';
+    const el = document.getElementById('tab-' + t);
+    if (el) el.style.display = t === name ? 'block' : 'none';
   });
   activeTab = name;
   if (name === 'today') renderToday();
@@ -231,14 +233,11 @@ function rerenderActive() {
   }
   if (activeTab === 'admin' && adminAuth) renderAdminContent();
 }
-window.switchTab = switchTab;
 
 // ── TODAY VIEW ────────────────────────────────────────────────────────────────
 function renderToday() {
   renderTodayContent();
 }
-
-let selectedDate = todayISO();
 
 function getWeekDates() {
   const today = new Date();
@@ -311,7 +310,7 @@ function renderTodayContent() {
             <i class="ti ti-external-link" style="font-size:14px"></i>
             教材連結${c.materialPage ? ' — p.' + esc(c.materialPage) : ''}
           </a>` : ''}
-          ${c.imageUrl ? `<img src="${esc(c.imageUrl)}" style="margin-top:10px;max-width:100%;border-radius:8px;border:1px solid #EEE;display:block">` : ''}
+          ${(c.imageUrls && c.imageUrls.length) ? c.imageUrls.map(u => `<img src="${esc(u)}" style="margin-top:8px;max-width:100%;border-radius:8px;border:1px solid #EEE;display:block">`).join('') : (c.imageUrl ? `<img src="${esc(c.imageUrl)}" style="margin-top:8px;max-width:100%;border-radius:8px;border:1px solid #EEE;display:block">` : '')}
         </div>`;
       } else {
         html += `<div class="warn-box">
@@ -325,15 +324,12 @@ function renderTodayContent() {
   document.getElementById('tab-today').innerHTML = html;
 }
 
-window.selectDay = function(iso) {
+function selectDay(iso) {
   selectedDate = iso;
   renderTodayContent();
-};
-
-
+}
 
 // ── TEACHER VIEW ──────────────────────────────────────────────────────────────
-// ── IMAGE UPLOAD ─────────────────────────────────────────────────────────────
 async function uploadImage(file) {
   const base64 = await new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -350,25 +346,53 @@ async function uploadImage(file) {
   throw new Error('Upload failed');
 }
 
-window.handleImageUpload = async function(event, id) {
-  const file = event.target.files[0];
+// Event delegation for image upload
+document.addEventListener('change', async function(e) {
+  if (!e.target.classList.contains('ecc-img-input')) return;
+  const id = e.target.dataset.cid;
+  const file = e.target.files[0];
   if (!file) return;
   const status = document.getElementById('img-status-' + id);
-  const preview = document.getElementById('img-preview-' + id);
   if (status) { status.textContent = '上傳中...'; status.style.color = '#888'; }
   try {
     const url = await uploadImage(file);
     const course = courses[id];
     if (!course) return;
-    course.imageUrl = url;
+    if (!course.imageUrls) course.imageUrls = [];
+    if (course.imageUrl && !course.imageUrls.includes(course.imageUrl)) {
+      course.imageUrls.push(course.imageUrl);
+      delete course.imageUrl;
+    }
+    course.imageUrls.push(url);
     course.updatedAt = new Date().toISOString();
     await saveCourse(id, course);
-    if (preview) { preview.src = url; preview.style.display = 'block'; }
-    if (status) { status.textContent = '✓ 圖片上傳成功'; status.style.color = '#1E7E34'; setTimeout(() => { if(status) status.textContent = ''; }, 3000); }
-  } catch(e) {
+    renderImageList(id, course.imageUrls);
+    if (status) { status.textContent = '✓ 上傳成功'; status.style.color = '#1E7E34'; setTimeout(() => { if(status) status.textContent = ''; }, 2000); }
+    e.target.value = '';
+  } catch(err) {
     if (status) { status.textContent = '上傳失敗，請重試'; status.style.color = '#C62828'; }
   }
-};
+});
+
+function renderImageList(id, urls) {
+  const container = document.getElementById('img-list-' + id);
+  if (!container) return;
+  if (!urls || !urls.length) { container.innerHTML = ''; return; }
+  container.innerHTML = urls.map((url, i) => `
+    <div style="position:relative;display:inline-block;margin:4px 6px 4px 0">
+      <img src="${url}" style="width:120px;height:80px;object-fit:cover;border-radius:6px;border:1px solid #EEE;display:block">
+      <button onclick="deleteImage('${id}',${i})" style="position:absolute;top:2px;right:2px;padding:2px 5px;font-size:10px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:4px;cursor:pointer">✕</button>
+    </div>`).join('');
+}
+
+async function deleteImage(id, index) {
+  const course = courses[id];
+  if (!course || !course.imageUrls) return;
+  course.imageUrls.splice(index, 1);
+  course.updatedAt = new Date().toISOString();
+  await saveCourse(id, course);
+  renderImageList(id, course.imageUrls);
+}
 
 function renderTeacher() {
   const teachers = [...new Set(courseList().map(c => c.teacher).filter(Boolean))].sort();
@@ -384,7 +408,7 @@ function renderTeacher() {
     <div id="teacher-courses"></div>`;
 }
 
-window.renderTeacherCourses = function() {
+function renderTeacherCourses() {
   const teacher = document.getElementById('teacher-select').value;
   const el = document.getElementById('teacher-courses');
   if (!teacher) { el.innerHTML = ''; return; }
@@ -419,20 +443,24 @@ window.renderTeacherCourses = function() {
         </div>
       </div>
       <div style="margin-top:4px">
-        <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px">教材截圖</label>
+        <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px">教材截圖（可上傳多張）</label>
         <label class="img-upload-btn" style="display:inline-flex;cursor:pointer">
-          <input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(event,'${c.id}')">
+          <input type="file" accept="image/*" class="ecc-img-input" data-cid="${c.id}" style="position:absolute;opacity:0;width:1px;height:1px;overflow:hidden">
           <i class="ti ti-photo-up" style="font-size:15px"></i>&nbsp;上傳截圖
         </label>
         <div id="img-status-${c.id}" class="img-uploading"></div>
-        ${c.imageUrl ? `<img id="img-preview-${c.id}" src="${esc(c.imageUrl)}" class="img-preview">` : `<img id="img-preview-${c.id}" class="img-preview" style="display:none">`}
+        <div id="img-list-${c.id}" style="margin-top:6px;display:flex;flex-wrap:wrap;align-items:flex-start"></div>
       </div>
     </div>`;
   });
   el.innerHTML = html;
-};
+  mine.forEach(c => {
+    const urls = c.imageUrls || (c.imageUrl ? [c.imageUrl] : []);
+    renderImageList(c.id, urls);
+  });
+}
 
-window.saveField = async function(id, field, val) {
+async function saveField(id, field, val) {
   const course = courses[id];
   if (!course) return;
   course[field] = val;
@@ -446,7 +474,7 @@ window.saveField = async function(id, field, val) {
     tb.className = `badge ${lesson ? 'badge-green' : 'badge-orange'}`;
     tb.textContent = lesson ? '完成' : '待填';
   }
-};
+}
 
 // ── ADMIN VIEW ────────────────────────────────────────────────────────────────
 function renderAdmin() {
@@ -464,11 +492,11 @@ function renderAdmin() {
   renderAdminContent();
 }
 
-window.tryAdminLogin = function() {
+function tryAdminLogin() {
   const v = document.getElementById('apw-in').value;
   if (v === settings.apw) { adminAuth = true; renderAdminContent(); }
   else document.getElementById('apw-err').style.display = 'block';
-};
+}
 
 function renderAdminContent() {
   document.getElementById('tab-admin').innerHTML = `
@@ -531,7 +559,7 @@ function renderAdminContent() {
   renderCourseList();
 }
 
-window.renderCourseList = function() {
+function renderCourseList() {
   const filter = (document.getElementById('search')?.value || '').toLowerCase();
   const list = courseList()
     .filter(c => !filter || [c.date, c.className, c.teacher, c.classroom].some(v => (v||'').toLowerCase().includes(filter)))
@@ -552,9 +580,9 @@ window.renderCourseList = function() {
         <i class="ti ti-trash" style="font-size:14px"></i>
       </button>
     </div>`).join('');
-};
+}
 
-window.doImport = async function() {
+async function doImport() {
   const lines = document.getElementById('paste-area').value.trim().split('\n').filter(Boolean);
   let added = 0, skipped = 0;
   for (const line of lines) {
@@ -570,9 +598,9 @@ window.doImport = async function() {
   }
   document.getElementById('import-msg').textContent = `✓ ${added} 堂課匯入成功，${skipped} 筆略過（重複或格式錯誤）`;
   document.getElementById('paste-area').value = '';
-};
+}
 
-window.addSingle = async function() {
+async function addSingle() {
   const date = toISO(document.getElementById('a-date').value);
   const className = document.getElementById('a-class').value.trim();
   if (!date || !className) return;
@@ -587,27 +615,42 @@ window.addSingle = async function() {
     createdAt: new Date().toISOString()
   });
   ['a-date','a-class','a-time','a-room','a-teacher'].forEach(id => { document.getElementById(id).value = ''; });
-};
+}
 
-window.doDelete = async function(id) {
+async function doDelete(id) {
   if (!confirm('確定刪除這堂課？')) return;
   await deleteCourse(id);
   renderCourseList();
-};
+}
 
-window.updatePw = async function(key) {
+async function updatePw(key) {
   const val = document.getElementById('new-' + key).value.trim();
   if (!val) return;
   const newSettings = { ...settings, [key]: val };
   await saveSettings(newSettings);
   document.getElementById('new-' + key).value = '';
   alert(`密碼已更新`);
-};
+}
+
+// ── Expose to Global Window Scope ───────────────────────────────────────────
+window.switchTab = switchTab;
+window.selectDay = selectDay;
+window.renderTeacherCourses = renderTeacherCourses;
+window.saveField = saveField;
+window.deleteImage = deleteImage;
+window.tryAdminLogin = tryAdminLogin;
+window.renderCourseList = renderCourseList;
+window.doImport = doImport;
+window.addSingle = addSingle;
+window.doDelete = doDelete;
+window.updatePw = updatePw;
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 setTimeout(() => {
-  document.getElementById('loading').style.display = 'none';
-  document.getElementById('tab-today').style.display = 'block';
+  const lod = document.getElementById('loading');
+  if (lod) lod.style.display = 'none';
+  const todayTab = document.getElementById('tab-today');
+  if (todayTab) todayTab.style.display = 'block';
   renderToday();
 }, 800);
 </script>
